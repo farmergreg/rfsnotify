@@ -3,6 +3,8 @@ package rfsnotify
 
 import (
 	"gopkg.in/fsnotify.v1"
+
+	"errors"
 	"os"
 	"path/filepath"
 )
@@ -14,6 +16,7 @@ type RWatcher struct {
 
 	done     chan bool
 	fsnotify *fsnotify.Watcher
+	isClosed bool
 }
 
 // NewWatcher establishes a new watcher with the underlying OS and begins waiting for events.
@@ -36,11 +39,17 @@ func NewWatcher() (*RWatcher, error) {
 
 // Add starts watching the named file or directory (non-recursively).
 func (m *RWatcher) Add(name string) error {
+	if m.isClosed {
+		return errors.New("rfsnotify instance already closed")
+	}
 	return m.fsnotify.Add(name)
 }
 
 // AddRecursive starts watching the named directory and all sub-directories.
 func (m *RWatcher) AddRecursive(name string) error {
+	if m.isClosed {
+		return errors.New("rfsnotify instance already closed")
+	}
 	if err := m.watchRecursive(name, false); err != nil {
 		return err
 	}
@@ -62,6 +71,10 @@ func (m *RWatcher) RemoveRecursive(name string) error {
 
 // Close removes all watches and closes the events channel.
 func (m *RWatcher) Close() error {
+	if m.isClosed {
+		return nil
+	}
+	m.isClosed = true
 	m.done <- true
 	return nil
 }
