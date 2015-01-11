@@ -8,10 +8,12 @@ it allows you to monitor all folders underneath the folder you specify.
 
 Example:
 --------
-
+(error handling omitted to improve readability)
 ```
 import "github.com/dietsche/rfsnotify"
-watcher, err := rfsnotify.New("/tmp/")
+watcher, err := rfsnotify.NewWatcher()
+watcher.AddRecursive("/tmp/")
  //from this point forward, refer to the fsnotify documentation
+ //rfsnotify works exactly like fsnotify and implements the same API.
  
 ```
