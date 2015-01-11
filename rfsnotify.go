@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-// RWatcher wraps fsnotify.Watcher when fsnotify adds recursive watches, you should be able to switch your code to use fsnotify.Watcher
+// RWatcher wraps fsnotify.Watcher. When fsnotify adds recursive watches, you should be able to switch your code to use fsnotify.Watcher
 type RWatcher struct {
 	Events chan fsnotify.Event
 	Errors chan error
