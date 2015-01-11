@@ -39,7 +39,7 @@ func (m *RWatcher) Add(name string) error {
 	return m.fsnotify.Add(name)
 }
 
-// Add starts watching the named file or directory (recursively).
+// AddRecursive starts watching the named file or directory (recursively).
 func (m *RWatcher) AddRecursive(name string) error {
 	if err := m.watchRecursive(name); err != nil {
 		return err
