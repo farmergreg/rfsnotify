@@ -16,8 +16,8 @@ type RWatcher struct {
 	fsnotify *fsnotify.Watcher
 }
 
-// New starts a new RWatcher
-func New(pathToFolder string) (*RWatcher, error) {
+// NewWatcher establishes a new watcher with the underlying OS and begins waiting for events.
+func NewWatcher() (*RWatcher, error) {
 	fsWatch, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
@@ -29,13 +29,33 @@ func New(pathToFolder string) (*RWatcher, error) {
 	m.Errors = make(chan error)
 	m.done = make(chan bool)
 
-	if err = m.watchRecursive(pathToFolder); err != nil {
-		return nil, err
-	}
-
 	go m.start()
 
 	return m, nil
+}
+
+// Add starts watching the named file or directory (non-recursively).
+func (m *RWatcher) Add(name string) error {
+	return m.fsnotify.Add(name)
+}
+
+// Add starts watching the named file or directory (recursively).
+func (m *RWatcher) AddRecursive(name string) error {
+	if err := m.watchRecursive(name); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Remove stops watching the the named file or directory (non-recursively).
+func (m *RWatcher) Remove(name string) error {
+	return m.fsnotify.Remove(name)
+}
+
+// Close removes all watches and closes the events channel.
+func (m *RWatcher) Close() error {
+	m.done <- true
+	return nil
 }
 
 func (m *RWatcher) start() {
@@ -84,9 +104,4 @@ func (m *RWatcher) watchRecursive(path string) error {
 		return nil
 	})
 	return err
-}
-
-// Close releases all resources that are consumed by RWatcher
-func (m *RWatcher) Close() {
-	m.done <- true
 }
