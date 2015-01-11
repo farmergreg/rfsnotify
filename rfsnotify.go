@@ -1,4 +1,4 @@
-// rfsnotify implements recursive folder monitoring using fsnotify
+// Package rfsnotify implements recursive folder monitoring by wrapping the excellent fsnotify library
 package rfsnotify
 
 import (
@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 )
 
+// RWatcher wraps fsnotify.Watcher when fsnotify adds recursive watches, you should be able to switch your code to use fsnotify.Watcher
 type RWatcher struct {
 	Events chan fsnotify.Event
 	Errors chan error
