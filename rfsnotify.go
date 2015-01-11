@@ -39,9 +39,9 @@ func (m *RWatcher) Add(name string) error {
 	return m.fsnotify.Add(name)
 }
 
-// AddRecursive starts watching the named file or directory (recursively).
+// AddRecursive starts watching the named directory and all sub-directories.
 func (m *RWatcher) AddRecursive(name string) error {
-	if err := m.watchRecursive(name); err != nil {
+	if err := m.watchRecursive(name, false); err != nil {
 		return err
 	}
 	return nil
@@ -50,6 +50,14 @@ func (m *RWatcher) AddRecursive(name string) error {
 // Remove stops watching the the named file or directory (non-recursively).
 func (m *RWatcher) Remove(name string) error {
 	return m.fsnotify.Remove(name)
+}
+
+// RemoveRecursive stops watching the named directory and all sub-directories.
+func (m *RWatcher) RemoveRecursive(name string) error {
+	if err := m.watchRecursive(name, true); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Close removes all watches and closes the events channel.
@@ -67,7 +75,7 @@ func (m *RWatcher) start() {
 			s, err := os.Stat(e.Name)
 			if err == nil && s != nil && s.IsDir() {
 				if e.Op&fsnotify.Create != 0 {
-					m.watchRecursive(e.Name)
+					m.watchRecursive(e.Name, false)
 				}
 			}
 			//Can't stat a deleted directory, so just pretend that it's always a directory and
@@ -91,14 +99,20 @@ func (m *RWatcher) start() {
 
 // watchRecursive adds all directories under the given one to the watch list.
 // this is probably a very racey process. What if a file is added to a folder before we get the watch added?
-func (m *RWatcher) watchRecursive(path string) error {
+func (m *RWatcher) watchRecursive(path string, unWatch bool) error {
 	err := filepath.Walk(path, func(walkPath string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if fi.IsDir() {
-			if err = m.fsnotify.Add(walkPath); err != nil {
-				return err
+			if unWatch {
+				if err = m.fsnotify.Remove(walkPath); err != nil {
+					return err
+				}
+			} else {
+				if err = m.fsnotify.Add(walkPath); err != nil {
+					return err
+				}
 			}
 		}
 		return nil
