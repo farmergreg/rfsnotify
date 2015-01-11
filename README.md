@@ -10,14 +10,12 @@ Example:
 --------
 (error handling omitted to improve readability)
 ```
-import "github.com/dietsche/rfsnotify"
-watcher, err := rfsnotify.NewWatcher()
+    import "github.com/dietsche/rfsnotify"
 
- //rfsnotify works exactly like fsnotify and implements the same API.
- //Rfsnotify implements two new API entry points: 
-watcher.AddRecursive("/tmp/")
-watcher.RemoveRecursive("/tmp/")
+//rfsnotify works exactly like fsnotify and implements the same API.
+    watcher, err := rfsnotify.NewWatcher()
 
- //from this point forward, refer to the fsnotify documentation
- 
+//rfsnotify adds two new API entry points:
+    watcher.AddRecursive("/tmp/")
+    watcher.RemoveRecursive("/tmp/")
 ```
