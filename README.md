@@ -1,4 +1,4 @@
-# rfsnotify
+# rfsnotify v0.0.1
 recursive directory notifications built as a wrapper around fsnotify (golang)
 
 This is a thin wrapper around https://github.com/go-fsnotify/fsnotify instead of only monitoring a top level folder,
