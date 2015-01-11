@@ -95,9 +95,9 @@ func (m *RWatcher) watchRecursive(path string) error {
 	err := filepath.Walk(path, func(walkPath string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
-		} else if fi.IsDir() {
-			err = m.fsnotify.Add(walkPath)
-			if err != nil {
+		}
+		if fi.IsDir() {
+			if err = m.fsnotify.Add(walkPath); err != nil {
 				return err
 			}
 		}
