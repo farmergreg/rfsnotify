@@ -14,7 +14,7 @@ type RWatcher struct {
 	Events chan fsnotify.Event
 	Errors chan error
 
-	done     chan bool
+	done     chan struct{}
 	fsnotify *fsnotify.Watcher
 	isClosed bool
 }
@@ -30,7 +30,7 @@ func NewWatcher() (*RWatcher, error) {
 	m.fsnotify = fsWatch
 	m.Events = make(chan fsnotify.Event)
 	m.Errors = make(chan error)
-	m.done = make(chan bool)
+	m.done = make(chan struct{})
 
 	go m.start()
 
@@ -74,13 +74,12 @@ func (m *RWatcher) Close() error {
 	if m.isClosed {
 		return nil
 	}
+	close(m.done)
 	m.isClosed = true
-	m.done <- true
 	return nil
 }
 
 func (m *RWatcher) start() {
-	defer close(m.done)
 	for {
 		select {
 
