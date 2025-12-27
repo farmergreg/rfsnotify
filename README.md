@@ -1,5 +1,6 @@
-# rfsnotify v0.1.0
-recursive directory notifications built as a wrapper around fsnotify (golang)
+# rfsnotify
+
+recursive directory notifications built as a wrapper around fsnotify (golang), forked from [this repo](https://github.com/farmergreg/rfsnotify)
 
 [![GoDoc](https://godoc.org/github.com/farmergreg/rfsnotify?status.svg)](https://godoc.org/github.com/farmergreg/rfsnotify)
 

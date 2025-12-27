@@ -2,11 +2,13 @@
 package rfsnotify
 
 import (
-	"gopkg.in/fsnotify.v1"
-
 	"errors"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/fsnotify/fsnotify"
 )
 
 // RWatcher wraps fsnotify.Watcher. When fsnotify adds recursive watches, you should be able to switch your code to use fsnotify.Watcher
@@ -84,16 +86,23 @@ func (m *RWatcher) start() {
 		select {
 
 		case e := <-m.fsnotify.Events:
+
 			s, err := os.Stat(e.Name)
 			if err == nil && s != nil && s.IsDir() {
-				if e.Op&fsnotify.Create != 0 {
-					m.watchRecursive(e.Name, false)
+				if e.Has(fsnotify.Create) {
+					if ewr := m.watchRecursive(e.Name, false); ewr != nil {
+						slog.Error("an error occurred with m.watchRecursive", slog.String("path", e.Name), slog.String("error", ewr.Error()))
+					}
 				}
 			}
-			//Can't stat a deleted directory, so just pretend that it's always a directory and
-			//try to remove from the watch list...  we really have no clue if it's a directory or not...
-			if e.Op&fsnotify.Remove != 0 {
-				m.fsnotify.Remove(e.Name)
+			// Can't stat a deleted directory, so just pretend that it's always a directory and
+			// try to remove from the watch list...  we really have no clue if it's a directory or not...
+			if e.Has(fsnotify.Remove) {
+				if er := m.fsnotify.Remove(e.Name); er != nil {
+					if !strings.Contains(er.Error(), "non-existent watch") {
+						slog.Warn("an error occurred with fsnotify.Remove", slog.String("path", e.Name), slog.String("error", er.Error()))
+					}
+				}
 			}
 			m.Events <- e
 
@@ -101,7 +110,9 @@ func (m *RWatcher) start() {
 			m.Errors <- e
 
 		case <-m.done:
-			m.fsnotify.Close()
+			if ec := m.fsnotify.Close(); ec != nil {
+				slog.Error("an error occurred with fsnotify.Close", slog.String("error", ec.Error()))
+			}
 			close(m.Events)
 			close(m.Errors)
 			return
