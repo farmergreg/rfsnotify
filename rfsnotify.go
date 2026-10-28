@@ -23,6 +23,13 @@ type backend interface {
 	Close() error
 }
 
+// recursiveBackend is a backend watching directory trees natively,
+// directories created under a recursive watch are watched without RWatcher adding them.
+type recursiveBackend interface {
+	backend
+	AddRecursive(name string) error
+}
+
 // notification is an fsnotify event or error.
 type notification struct {
 	event fsnotify.Event
@@ -35,6 +42,10 @@ type notification struct {
 // so they must not be called by the goroutine reading them. RWatcher reads fsnotify notifications in one goroutine,
 // which only queues them, and processes them in another one: it updates the watches an event requires,
 // then forwards it. A created directory is therefore watched before its event is received.
+//
+// On Windows, RWatcher uses its own backend instead of fsnotify, which watches trees natively,
+// at the cost of one handle and one buffer per watch: fsnotify needs one per directory.
+// It only watches directories, and Add does not watch directories created later, unlike other platforms.
 type RWatcher struct {
 	Events chan fsnotify.Event
 	Errors chan error
@@ -56,11 +67,11 @@ type RWatcher struct {
 
 // NewWatcher establishes a new watcher with the underlying OS and begins waiting for events.
 func NewWatcher() (*RWatcher, error) {
-	fsWatch, err := fsnotify.NewWatcher()
+	b, events, errs, err := newBackend()
 	if err != nil {
 		return nil, err
 	}
-	return newWatcher(fsWatch, fsWatch.Events, fsWatch.Errors), nil
+	return newWatcher(b, events, errs), nil
 }
 
 func newWatcher(b backend, events <-chan fsnotify.Event, errs <-chan error) *RWatcher {
@@ -93,6 +104,9 @@ func (m *RWatcher) Add(name string) error {
 func (m *RWatcher) AddRecursive(name string) error {
 	if m.isClosed() {
 		return ErrClosed
+	}
+	if rb, ok := m.fsnotify.(recursiveBackend); ok {
+		return rb.AddRecursive(name)
 	}
 	return m.addRecursive(filepath.Clean(name))
 }
@@ -217,6 +231,9 @@ func (m *RWatcher) processNotifications() {
 }
 
 func (m *RWatcher) updateWatches(e fsnotify.Event) error {
+	if _, ok := m.fsnotify.(recursiveBackend); ok {
+		return nil
+	}
 	// Can't stat a deleted directory, so just pretend that it's always a directory and
 	// try to remove from the watch list...  we really have no clue if it's a directory or not...
 	if e.Has(fsnotify.Remove) {

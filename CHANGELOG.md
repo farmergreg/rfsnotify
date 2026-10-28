@@ -12,6 +12,7 @@
 
 ### Changed
 
+- Windows: native backend instead of fsnotify, a recursive watch costs one handle and one 64KB buffer whatever the number of sub-directories (fsnotify needs one per directory, i.e. gigabytes for large trees), and no walk of the tree. Only directories can be watched, `Add` does not watch directories created later
 - errors while updating watches on events are sent to `Errors` instead of being logged, expected ones (watch already removed, entry already deleted) are ignored
 - fsnotify notifications are queued without limit while the consumer does not read `Events`, instead of blocking fsnotify
 - `AddRecursive` uses `filepath.WalkDir`, faster on large trees
